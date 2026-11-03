@@ -1,23 +1,17 @@
 {
   "enabled": true,
-  "botToken": "9136425911:AAErG4jM6tEFAQr_AovMWXxUGaLFSra_jdQ",
+  "botToken": "",
   "botName": "RJ SIYAM TELEGRAM BOT",
   "prefix": ",",
   "language": "bn",
-
   "owner": {
-    "ids": [
-      "8442705758"
-    ]
+    "ids": ["8442705758"]
   },
-
   "admins": [],
-
   "whitelist": {
     "enabled": false,
     "ids": [8442705758]
   },
-
   "adminOnly": {
     "enabled": false,
     "ignoreCommands": [
@@ -27,7 +21,6 @@
       "id"
     ]
   },
-
   "permissions": {
     "allowPrivate": true,
     "allowGroups": true,
@@ -35,25 +28,21 @@
     "allowOnlyGroupAdminsForModeration": true,
     "allowBotCommands": false
   },
-
   "security": {
     "blockBots": true,
     "blockUnknownUsers": false,
     "blockUnknownGroups": false
   },
-
   "cooldown": {
     "enabled": true,
     "defaultSeconds": 1
   },
-
   "polling": {
     "enabled": true,
     "timeout": 30,
     "retryDelayMs": 3000,
     "dropPendingUpdates": false
   },
-
   "features": {
     "commands": true,
     "events": true,
@@ -70,7 +59,6 @@
     "database": true,
     "cooldown": true
   },
-
   "logging": {
     "enabled": true,
     "showCommands": true,
