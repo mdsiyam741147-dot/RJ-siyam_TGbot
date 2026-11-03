@@ -11,16 +11,18 @@ class EventHandler {
   }
 
   async dispatch(method, ctx) {
-    if (this.bot.config.features?.events === false) return;
+    if (this.bot.config.features?.events === false) {
+      return;
+    }
 
     for (const event of this.events) {
-      if (typeof event[method] !== "function") continue;
+      if (typeof event[method] !== "function") {
+        continue;
+      }
 
       try {
         if (
-          method === "onChat" ||
-          method === "onAnyEvent" ||
-          method === "onReaction"
+          ["onChat", "onAnyEvent", "onReaction"].includes(method)
         ) {
           await event[method](ctx, this.bot);
         } else {
