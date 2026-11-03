@@ -19,18 +19,17 @@ class MessageHandler {
       return;
     }
 
-    // পুরোনো bot.on("message"), bot.on("callback_query") ইত্যাদি
     await legacyBot.dispatch(update);
 
     if (update.message_reaction) {
       if (this.bot.config.features?.onReaction !== false) {
         await this.bot.eventHandler.dispatch("onReaction", ctx);
       }
+
       return;
     }
 
     if (ctx.message) {
-      // পুরোনো command.onChat({ bot, msg })
       const uniqueCommands = new Set(this.bot.commands.values());
 
       for (const command of uniqueCommands) {
@@ -54,7 +53,10 @@ class MessageHandler {
         await this.bot.eventHandler.dispatch("onChat", ctx);
       }
 
-      if (ctx.message.new_chat_members || ctx.message.left_chat_member) {
+      if (
+        ctx.message.new_chat_members ||
+        ctx.message.left_chat_member
+      ) {
         if (this.bot.config.features?.onEvent !== false) {
           await this.bot.eventHandler.dispatch("onEvent", ctx);
         }
@@ -86,11 +88,19 @@ class MessageHandler {
         await this.bot.eventHandler.dispatch("onCallback", ctx);
       }
 
-      // কোনো callback handler নিজে answer না করলে এটি সাধারণ answer পাঠাবে।
       try {
         await ctx.answerCallback();
       } catch (error) {
-        console.error("[CALLBACK ANSWER ERROR]", error.message);
+        if (
+          !/query is too old|query_id_invalid|already answered/i.test(
+            error.message || ""
+          )
+        ) {
+          console.error(
+            "[CALLBACK ANSWER ERROR]",
+            error.message
+          );
+        }
       }
     }
   }
