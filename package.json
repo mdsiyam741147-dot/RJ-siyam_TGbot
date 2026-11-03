@@ -1,7 +1,6 @@
-
 {
   "name": "rj-siyam-tg-bot",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "RJ Siyam Telegram Bot",
   "main": "start.js",
   "author": "Siyam",
@@ -12,7 +11,7 @@
   },
   "scripts": {
     "start": "node start.js",
-    "check": "node --check start.js && node --check index.js && node --check core/api.js && node --check core/bot.js && node --check core/context.js && node --check core/permissions.js && node --check handlers/commandHandler.js && node --check handlers/messageHandler.js && node --check handlers/eventHandler.js && node --check loader/loadCommands.js && node --check loader/loadEvents.js"
+    "check": "node --check start.js && node --check index.js && node --check core/api.js && node --check core/bot.js && node --check core/context.js && node --check core/permissions.js && node --check core/compat/legacyBot.js && node --check handlers/commandHandler.js && node --check handlers/messageHandler.js && node --check handlers/eventHandler.js && node --check handlers/callbackHandler.js && node --check loader/loadCommands.js && node --check loader/loadEvents.js && node --check events/welcome.js && node --check events/autolink.js && node --check events/autoinvite.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
