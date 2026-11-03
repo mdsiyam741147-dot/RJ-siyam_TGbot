@@ -1,3 +1,4 @@
+
 "use strict";
 
 const listeners = new WeakMap();
@@ -70,7 +71,7 @@ const argumentKeys = {
     "options"
   ],
 
-  sendChatAction: ["chat_id", "action"],
+  sendChatAction: ["chat_id", "action", "options"],
 
   forwardMessage: [
     "chat_id",
@@ -87,7 +88,7 @@ const argumentKeys = {
   ],
 
   editMessageText: ["text", "options"],
-  editMessageCaption: ["options"],
+  editMessageCaption: ["caption", "options"],
   editMessageReplyMarkup: ["options"],
 
   deleteMessage: [
@@ -155,7 +156,8 @@ function makeParams(method, args) {
   if (
     args.length === 1 &&
     args[0] &&
-    typeof args[0] === "object"
+    typeof args[0] === "object" &&
+    !Buffer.isBuffer(args[0])
   ) {
     return { ...args[0] };
   }
@@ -166,11 +168,12 @@ function makeParams(method, args) {
   keys.forEach((key, index) => {
     const value = args[index];
 
-    if (value === undefined) return;
+    if (value === undefined || value === null) {
+      return;
+    }
 
     if (
       key === "options" &&
-      value &&
       typeof value === "object"
     ) {
       Object.assign(params, value);
@@ -211,6 +214,10 @@ function getLegacyBot(bot) {
     },
 
     once(eventName, callback) {
+      if (typeof callback !== "function") {
+        return facade;
+      }
+
       const wrapper = (...args) => {
         facade.off(eventName, wrapper);
         return callback(...args);
@@ -245,6 +252,14 @@ function getLegacyBot(bot) {
     },
 
     onText(regex, callback) {
+      if (!(regex instanceof RegExp)) {
+        throw new TypeError("onText requires a RegExp");
+      }
+
+      if (typeof callback !== "function") {
+        throw new TypeError("onText requires a callback");
+      }
+
       if (!events.has("__text")) {
         events.set("__text", []);
       }
@@ -264,6 +279,7 @@ function getLegacyBot(bot) {
     async getUserRole(userId, chatId) {
       const ownerIds = bot.config.owner?.ids || [];
       const adminIds = bot.config.admins || [];
+
       const modIds =
         bot.config.modIDs ||
         bot.config.modIds ||
@@ -314,7 +330,7 @@ function getLegacyBot(bot) {
 
       for (const name of names) {
         const payload = update[name];
-        const callbacks = events.get(name) || [];
+        const callbacks = [...(events.get(name) || [])];
 
         for (const callback of callbacks) {
           try {
@@ -363,6 +379,7 @@ function getLegacyBot(bot) {
         method === "answerCallbackQuery" &&
         typeof args[1] === "string"
       ) {
+        delete params.options;
         params.text = args[1];
       }
 
