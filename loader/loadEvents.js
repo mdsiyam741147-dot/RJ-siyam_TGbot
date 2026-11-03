@@ -4,6 +4,26 @@ const fs = require("fs");
 const path = require("path");
 const getLegacyBot = require("../core/compat/legacyBot");
 
+function getJsFiles(directory) {
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+
+  const results = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      results.push(...getJsFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith(".js")) {
+      results.push(fullPath);
+    }
+  }
+
+  return results.sort();
+}
+
 function loadEvents(bot) {
   const directory = path.join(__dirname, "..", "events");
 
@@ -13,18 +33,16 @@ function loadEvents(bot) {
 
   bot.eventHandler.events = [];
 
-  const files = fs.readdirSync(directory)
-    .filter(file => file.endsWith(".js"));
-
   const legacyBot = getLegacyBot(bot);
 
-  for (const file of files) {
-    const filePath = path.join(directory, file);
+  for (const filePath of getJsFiles(directory)) {
+    const file = path.relative(directory, filePath).replace(/\\/g, "/");
 
     try {
       delete require.cache[require.resolve(filePath)];
 
-      const event = require(filePath);
+      const exported = require(filePath);
+      const event = exported?.default || exported;
 
       if (typeof event === "function") {
         event(legacyBot);
@@ -37,9 +55,10 @@ function loadEvents(bot) {
         continue;
       }
 
-      if (!event.config) event.config = {};
+      event.config = { ...(event.config || {}) };
+
       if (!event.config.name) {
-        event.config.name = path.basename(file, ".js");
+        event.config.name = file.replace(/\.js$/i, "");
       }
 
       bot.eventHandler.register(event);
@@ -50,7 +69,9 @@ function loadEvents(bot) {
     }
   }
 
-  console.log(`[EVENTS] ${bot.eventHandler.events.length} object event files loaded.`);
+  console.log(
+    `[EVENTS] ${bot.eventHandler.events.length} object event files loaded.`
+  );
 }
 
 module.exports = loadEvents;
