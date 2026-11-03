@@ -1,8 +1,8 @@
 {
   "enabled": true,
-  "botToken": "",
+  "botToken": "9224992306:AAHqIBKECK6KcMSewlS-Mq1l9G-FVsHfeMM",
   "botName": "RJ SIYAM TELEGRAM BOT",
-  "prefix": ",",
+  "prefix": "/",
   "language": "bn",
   "owner": {
     "ids": ["8442705758"]
