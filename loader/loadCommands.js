@@ -23,28 +23,42 @@ function loadCommands(bot) {
 
       const command = require(filePath);
 
-      if (
-        !command ||
-        !command.config ||
-        !command.config.name ||
-        typeof command.onStart !== "function"
-      ) {
+      if (!command || typeof command !== "object") {
         console.warn(`[COMMAND SKIPPED] ${file}`);
         continue;
       }
 
-      const names = [
-        command.config.name,
-        ...(command.config.aliases || [])
-      ];
+      const name = command.name || command.config?.name;
 
-      for (const name of names) {
-        bot.commands.set(String(name).toLowerCase(), command);
+      const hasHandler =
+        typeof command.execute === "function" ||
+        typeof command.onStart === "function";
+
+      if (!name || !hasHandler) {
+        console.warn(`[COMMAND SKIPPED] ${file}`);
+        continue;
       }
 
-      console.log(`[COMMAND LOADED] ${command.config.name}`);
+      const aliases = [
+        ...(command.aliases || []),
+        ...(command.config?.aliases || [])
+      ];
+
+      const names = [name, ...aliases];
+
+      command.config = {
+        ...(command.config || {}),
+        name,
+        aliases
+      };
+
+      for (const item of names) {
+        bot.commands.set(String(item).toLowerCase(), command);
+      }
+
+      console.log(`[COMMAND LOADED] ${name}`);
     } catch (error) {
-      console.error(`[COMMAND LOAD ERROR] ${file}:`, error.message);
+      console.error(`[COMMAND LOAD ERROR] ${file}:`, error);
     }
   }
 
