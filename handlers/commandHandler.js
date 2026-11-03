@@ -1,5 +1,7 @@
 "use strict";
 
+const getLegacyBot = require("../core/compat/legacyBot");
+
 class CommandHandler {
   constructor(bot) {
     this.bot = bot;
@@ -27,14 +29,13 @@ class CommandHandler {
     const args = parts;
 
     const command = this.bot.commands.get(commandName);
-
-    // এখনো কোনো কমান্ড যোগ করা না থাকলে নীরবে বাদ দেবে।
     if (!command) return false;
 
     if (!(await this.bot.permissions.canUse(ctx))) return true;
 
     const role = await this.bot.permissions.getRole(ctx);
     const adminOnly = this.bot.config.adminOnly || {};
+    const requiredRole = command.config?.role;
 
     if (
       adminOnly.enabled &&
@@ -45,27 +46,23 @@ class CommandHandler {
       return true;
     }
 
-    if (
-      command.config?.role === "owner" &&
-      role < 3
-    ) {
-      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।।");
-      return true;
+    const roleRequirements = {
+      owner: 3,
+      admin: 2,
+      groupAdmin: 1
+    };
+
+    let minimumRole = roleRequirements[requiredRole];
+
+    if (typeof requiredRole === "number") {
+      minimumRole = requiredRole;
     }
 
     if (
-      command.config?.role === "admin" &&
-      role < 2
+      minimumRole !== undefined &&
+      role < minimumRole
     ) {
       await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।");
-      return true;
-    }
-
-    if (
-      command.config?.role === "groupAdmin" &&
-      role < 1
-    ) {
-      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।।");
       return true;
     }
 
@@ -92,16 +89,23 @@ class CommandHandler {
 
     this.cooldowns.set(cooldownKey, now);
 
+    const legacyBot = getLegacyBot(this.bot);
+
     try {
-      await command.onStart({
-        ctx,
-        bot: this.bot,
-        args,
-        commandName
-      });
+      if (typeof command.execute === "function") {
+        await command.execute(legacyBot, ctx.message, args);
+      } else {
+        await command.onStart({
+          ctx,
+          bot: legacyBot,
+          args,
+          commandName,
+          msg: ctx.message
+        });
+      }
     } catch (error) {
       console.error(`[COMMAND ERROR] ${commandName}:`, error);
-      await ctx.reply("কমান্ড চালাতে সমস্যা হয়েছে। সিয়াম ভাই");
+      await ctx.reply("কমান্ড চালাতে সমস্যা হয়েছে। সিয়াম কই তুমি 😭");
     }
 
     return true;
