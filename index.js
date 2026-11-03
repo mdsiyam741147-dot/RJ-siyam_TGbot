@@ -1,4 +1,3 @@
-
 "use strict";
 
 const fs = require("fs");
@@ -16,7 +15,9 @@ function readConfig() {
     : exampleConfig;
 
   if (!fs.existsSync(configPath)) {
-    throw new Error("config.json or config.example.json not found");
+    throw new Error(
+      "config.json or config.example.json not found"
+    );
   }
 
   const config = JSON.parse(
@@ -36,19 +37,23 @@ function readConfig() {
     config.botToken.includes("YOUR_TELEGRAM") ||
     config.botToken.includes("PASTE_YOUR")
   ) {
-    throw new Error("Telegram Bot Token is missing");
+    throw new Error(
+      "Telegram Bot Token is missing. Set botToken in private config.json or TELEGRAM_BOT_TOKEN environment variable."
+    );
   }
 
   return config;
 }
 
 async function startTelegram() {
-  if (botInstance) return botInstance;
+  if (botInstance) {
+    return botInstance;
+  }
 
-  const config = readConfig();
-  const bot = new TelegramBot(config);
+  const bot = new TelegramBot(readConfig());
 
   await bot.start();
+
   botInstance = bot;
 
   return bot;
