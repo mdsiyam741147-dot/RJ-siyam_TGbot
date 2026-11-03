@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const getLegacyBot = require("../core/compat/legacyBot");
 
 function loadEvents(bot) {
   const directory = path.join(__dirname, "..", "events");
@@ -15,6 +16,8 @@ function loadEvents(bot) {
   const files = fs.readdirSync(directory)
     .filter(file => file.endsWith(".js"));
 
+  const legacyBot = getLegacyBot(bot);
+
   for (const file of files) {
     const filePath = path.join(directory, file);
 
@@ -23,20 +26,31 @@ function loadEvents(bot) {
 
       const event = require(filePath);
 
-      if (!event || !event.config || !event.config.name) {
+      if (typeof event === "function") {
+        event(legacyBot);
+        console.log(`[LEGACY EVENT LOADED] ${file}`);
+        continue;
+      }
+
+      if (!event || typeof event !== "object") {
         console.warn(`[EVENT SKIPPED] ${file}`);
         continue;
+      }
+
+      if (!event.config) event.config = {};
+      if (!event.config.name) {
+        event.config.name = path.basename(file, ".js");
       }
 
       bot.eventHandler.register(event);
 
       console.log(`[EVENT LOADED] ${event.config.name}`);
     } catch (error) {
-      console.error(`[EVENT LOAD ERROR] ${file}:`, error.message);
+      console.error(`[EVENT LOAD ERROR] ${file}:`, error);
     }
   }
 
-  console.log(`[EVENTS] ${bot.eventHandler.events.length} event files loaded.`);
+  console.log(`[EVENTS] ${bot.eventHandler.events.length} object event files loaded.`);
 }
 
 module.exports = loadEvents;
