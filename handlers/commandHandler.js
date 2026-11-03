@@ -11,7 +11,9 @@ class CommandHandler {
   async handle(ctx) {
     if (!ctx.message || !ctx.text || !ctx.userId) return false;
 
-    if (this.bot.config.features?.commands === false) return false;
+    if (this.bot.config.features?.commands === false) {
+      return false;
+    }
 
     const prefix = this.bot.config.prefix || ",";
     const text = ctx.text.trim();
@@ -19,9 +21,14 @@ class CommandHandler {
     const isPrefixCommand = text.startsWith(prefix);
     const isSlashCommand = text.startsWith("/");
 
-    if (!isPrefixCommand && !isSlashCommand) return false;
+    if (!isPrefixCommand && !isSlashCommand) {
+      return false;
+    }
 
-    const body = text.slice(isSlashCommand ? 1 : prefix.length).trim();
+    const body = text
+      .slice(isSlashCommand ? 1 : prefix.length)
+      .trim();
+
     if (!body) return false;
 
     const parts = body.split(/\s+/);
@@ -29,9 +36,12 @@ class CommandHandler {
     const args = parts;
 
     const command = this.bot.commands.get(commandName);
+
     if (!command) return false;
 
-    if (!(await this.bot.permissions.canUse(ctx))) return true;
+    if (!(await this.bot.permissions.canUse(ctx))) {
+      return true;
+    }
 
     const role = await this.bot.permissions.getRole(ctx);
     const adminOnly = this.bot.config.adminOnly || {};
@@ -58,32 +68,40 @@ class CommandHandler {
       minimumRole = requiredRole;
     }
 
-    if (
-      minimumRole !== undefined &&
-      role < minimumRole
-    ) {
+    if (minimumRole !== undefined && role < minimumRole) {
       await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।");
       return true;
     }
 
-    const cooldownSeconds = Number(
+    const cooldownValue =
       command.config?.cooldown ??
+      command.config?.countDown ??
+      command.countDown ??
       this.bot.config.cooldown?.defaultSeconds ??
-      1
-    );
+      1;
+
+    const cooldownSeconds = Number(cooldownValue);
+
+    const validCooldown = Number.isFinite(cooldownSeconds)
+      ? Math.max(0, cooldownSeconds)
+      : 1;
 
     const cooldownEnabled =
-      this.bot.config.cooldown?.enabled !== false;
+      this.bot.config.cooldown?.enabled !== false &&
+      this.bot.config.features?.cooldown !== false;
 
     const cooldownKey = `${ctx.userId}:${commandName}`;
     const now = Date.now();
     const lastUsed = this.cooldowns.get(cooldownKey) || 0;
-    const remaining = cooldownSeconds * 1000 - (now - lastUsed);
+
+    const remaining =
+      validCooldown * 1000 - (now - lastUsed);
 
     if (cooldownEnabled && remaining > 0) {
       await ctx.reply(
         `অপেক্ষা করো। ${Math.ceil(remaining / 1000)} সেকেন্ড পর আবার চেষ্টা করো।`
       );
+
       return true;
     }
 
@@ -105,7 +123,10 @@ class CommandHandler {
       }
     } catch (error) {
       console.error(`[COMMAND ERROR] ${commandName}:`, error);
-      await ctx.reply("কমান্ড চালাতে সমস্যা হয়েছে। সিয়াম কই তুমি 😭");
+
+      await ctx.reply(
+        "কমান্ড চালাতে সমস্যা হয়েছে। সিয়াম ভাই কই তুমি 😭"
+      );
     }
 
     return true;
