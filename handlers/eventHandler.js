@@ -1,4 +1,3 @@
-
 "use strict";
 
 class EventHandler {
@@ -18,7 +17,11 @@ class EventHandler {
       if (typeof event[method] !== "function") continue;
 
       try {
-        if (method === "onChat" || method === "onAnyEvent" || method === "onReaction") {
+        if (
+          method === "onChat" ||
+          method === "onAnyEvent" ||
+          method === "onReaction"
+        ) {
           await event[method](ctx, this.bot);
         } else {
           await event[method]({
