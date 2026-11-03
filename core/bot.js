@@ -18,6 +18,7 @@ class TelegramBot {
     this.running = false;
     this.offset = 0;
     this.pollController = null;
+    this.pollingTask = null;
 
     this.permissions = new Permissions(this);
     this.commandHandler = new CommandHandler(this);
@@ -39,13 +40,31 @@ class TelegramBot {
 
     this.running = true;
 
-    // Polling আলাদাভাবে চলবে; start() সঙ্গে সঙ্গে ফিরে আসবে।
-    this.poll().catch(error => {
-      console.error("[POLLING FATAL ERROR]", error);
-      this.running = false;
-    });
+    this.pollingTask = this.pollSupervisor();
 
     return me;
+  }
+
+  async pollSupervisor() {
+    while (this.running) {
+      try {
+        console.log("[SYSTEM] Polling started.");
+
+        await this.poll();
+
+        if (this.running) {
+          throw new Error("Polling stopped unexpectedly.");
+        }
+      } catch (error) {
+        console.error("[POLLING CRASH]", error);
+
+        if (!this.running) break;
+
+        console.log("[SYSTEM] Restarting polling in 5 seconds...");
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
   }
 
   async poll() {
@@ -99,6 +118,11 @@ class TelegramBot {
 
     if (this.pollController) {
       this.pollController.abort();
+    }
+
+    if (this.pollingTask) {
+      await this.pollingTask;
+      this.pollingTask = null;
     }
   }
 }
