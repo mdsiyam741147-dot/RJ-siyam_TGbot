@@ -3,6 +3,26 @@
 const fs = require("fs");
 const path = require("path");
 
+function getJsFiles(directory) {
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+
+  const results = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      results.push(...getJsFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith(".js")) {
+      results.push(fullPath);
+    }
+  }
+
+  return results.sort();
+}
+
 function loadCommands(bot) {
   const directory = path.join(__dirname, "..", "commands");
 
@@ -12,16 +32,14 @@ function loadCommands(bot) {
 
   bot.commands.clear();
 
-  const files = fs.readdirSync(directory)
-    .filter(file => file.endsWith(".js"));
-
-  for (const file of files) {
-    const filePath = path.join(directory, file);
+  for (const filePath of getJsFiles(directory)) {
+    const file = path.relative(directory, filePath).replace(/\\/g, "/");
 
     try {
       delete require.cache[require.resolve(filePath)];
 
-      const command = require(filePath);
+      const exported = require(filePath);
+      const command = exported?.default || exported;
 
       if (!command || typeof command !== "object") {
         console.warn(`[COMMAND SKIPPED] ${file}`);
@@ -40,23 +58,32 @@ function loadCommands(bot) {
       }
 
       const aliases = [
-        ...(command.aliases || []),
-        ...(command.config?.aliases || [])
-      ];
-
-      const names = [name, ...aliases];
+        ...(Array.isArray(command.aliases) ? command.aliases : []),
+        ...(Array.isArray(command.config?.aliases)
+          ? command.config.aliases
+          : [])
+      ].map(String);
 
       command.config = {
         ...(command.config || {}),
-        name,
+        name: String(name),
         aliases
       };
 
-      for (const item of names) {
-        bot.commands.set(String(item).toLowerCase(), command);
+      for (const item of [name, ...aliases]) {
+        const key = String(item).toLowerCase();
+
+        if (bot.commands.has(key) && bot.commands.get(key) !== command) {
+          console.warn(
+            `[COMMAND DUPLICATE] "${key}" from ${file}; later file ignored`
+          );
+          continue;
+        }
+
+        bot.commands.set(key, command);
       }
 
-      console.log(`[COMMAND LOADED] ${name}`);
+      console.log(`[COMMAND LOADED] ${name} (${file})`);
     } catch (error) {
       console.error(`[COMMAND LOAD ERROR] ${file}:`, error);
     }
