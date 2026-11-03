@@ -1,7 +1,7 @@
-
 "use strict";
 
 const TelegramContext = require("../core/context");
+const getLegacyBot = require("../core/compat/legacyBot");
 
 class MessageHandler {
   constructor(bot) {
@@ -9,16 +9,8 @@ class MessageHandler {
   }
 
   async handle(update) {
-    if (update.message_reaction) {
-      const ctx = new TelegramContext(this.bot, update);
-
-      if (this.bot.config.features?.onReaction !== false) {
-        await this.bot.eventHandler.dispatch("onReaction", ctx);
-      }
-      return;
-    }
-
     const ctx = new TelegramContext(this.bot, update);
+    const legacyBot = getLegacyBot(this.bot);
 
     if (
       ctx.from?.is_bot &&
@@ -27,7 +19,33 @@ class MessageHandler {
       return;
     }
 
+    // পুরোনো bot.on("message"), bot.on("callback_query") ইত্যাদি
+    await legacyBot.dispatch(update);
+
+    if (update.message_reaction) {
+      if (this.bot.config.features?.onReaction !== false) {
+        await this.bot.eventHandler.dispatch("onReaction", ctx);
+      }
+      return;
+    }
+
     if (ctx.message) {
+      // পুরোনো command.onChat({ bot, msg })
+      const uniqueCommands = new Set(this.bot.commands.values());
+
+      for (const command of uniqueCommands) {
+        if (typeof command.onChat !== "function") continue;
+
+        try {
+          await command.onChat({
+            bot: legacyBot,
+            msg: ctx.message
+          });
+        } catch (error) {
+          console.error("[COMMAND onChat ERROR]", error);
+        }
+      }
+
       if (this.bot.config.features?.onAnyEvent !== false) {
         await this.bot.eventHandler.dispatch("onAnyEvent", ctx);
       }
@@ -47,9 +65,32 @@ class MessageHandler {
     }
 
     if (ctx.callbackQuery) {
+      const uniqueCommands = new Set(this.bot.commands.values());
+      const query = ctx.callbackQuery;
+
       if (this.bot.config.features?.callbacks !== false) {
+        for (const command of uniqueCommands) {
+          try {
+            if (typeof command.handleCallback === "function") {
+              await command.handleCallback(legacyBot, query);
+            }
+
+            if (typeof command.onCallbackQuery === "function") {
+              await command.onCallbackQuery(legacyBot, query);
+            }
+          } catch (error) {
+            console.error("[COMMAND CALLBACK ERROR]", error);
+          }
+        }
+
         await this.bot.eventHandler.dispatch("onCallback", ctx);
+      }
+
+      // কোনো callback handler নিজে answer না করলে এটি সাধারণ answer পাঠাবে।
+      try {
         await ctx.answerCallback();
+      } catch (error) {
+        console.error("[CALLBACK ANSWER ERROR]", error.message);
       }
     }
   }
