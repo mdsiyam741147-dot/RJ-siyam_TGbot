@@ -1,0 +1,59 @@
+RJ SIYAM TELEGRAM BOT - FILE REPLACEMENT MAP
+
+REPLACE these existing files completely (delete old contents first, then paste the full file):
+
+- core/api.js
+- core/compat/legacyBot.js
+- loader/loadCommands.js
+- loader/loadEvents.js
+- handlers/commandHandler.js
+- handlers/messageHandler.js
+- handlers/eventHandler.js
+- index.js
+- config.example.json
+- package.json
+
+No new source-code folder is required. The existing core/compat, loader, handlers,
+and events folders are used.
+
+Keep your existing commands/ and events/ folders and all command/event files
+inside them.
+
+The existing welcome.js, autolink.js and autoinvite.js files do not need replacing
+for the fixes in this update: the updated compatibility layer and API provide
+the methods they call.
+
+IMPORTANT CONFIG:
+
+- Do not replace your private config.json with config.example.json blindly.
+- Keep your existing config.json settings, but replace its exposed/old botToken
+  with a newly generated token from @BotFather, or set TELEGRAM_BOT_TOKEN in
+  the hosting environment.
+- config.example.json is a template only; its botToken is intentionally blank.
+- The token previously committed to GitHub must be revoked.
+- Removing config.json from .gitignore does not erase a file already committed.
+  Untrack/remove it from the repository and rotate the token.
+
+AFTER REPLACEMENT:
+
+1. npm install
+2. npm run check
+3. npm start
+
+Commands are loaded recursively from commands/**/*.js.
+Events are loaded recursively from events/**/*.js.
+
+Supported command exports include:
+- execute(bot, msg, args)
+- onStart({ctx, bot, args, commandName, msg})
+
+Legacy function-export events can register:
+- bot.on("message")
+- bot.on("callback_query")
+- bot.onText(...)
+- and similar listeners.
+
+Telegram API availability, bot permissions, third-party download services and
+each command's own code still affect runtime behavior.
+
+This does not implement every method in node-telegram-bot-api.
